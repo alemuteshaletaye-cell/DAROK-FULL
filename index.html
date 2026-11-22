@@ -3620,6 +3620,7 @@ async function awardLoyalty(orderId) {
 }
 function toggleDraw(id) { const o = sharedState.orders.find(x => x.id === id); if (!o) return; o.drawAllowed = !o.drawAllowed; saveSharedState(); openCashierTableModal(o.table); }
 function revealDraw(p, ts, won, chances) {
+  window._revealing = true; setTimeout(() => { window._revealing = false; }, 6000);
   const box = document.getElementById('cust-points'); box.innerHTML = '<span class="text-3xl" style="display:inline-block;animation:dkIn .3s ease infinite alternate">🎰🎟️🎁</span> በመሞከር ላይ...';
   setTimeout(() => { try { localStorage.setItem('darik_rev_' + p + ts, '1'); } catch (e) {}
     box.innerHTML = won > 0 ? `🎉 እንኳን ደስ አለዎት! ${won}× ${LOYALTY.PRIZE} አሸንፈዋል — ለካሸሩ ያሳዩ!` : '😊 በዚህ ጊዜ አልወጣም፤ ሌላ ጊዜ እንደገና ይሞክሩ!'; }, 1800);
@@ -3660,10 +3661,7 @@ body{background:radial-gradient(1200px 500px at 85% -10%,rgba(200,162,74,.16),tr
 .brand-gradient{box-shadow:0 10px 24px -10px rgba(28,20,16,.65);transition:transform .15s ease,filter .2s}
 button:active{transform:scale(.97)} .brand-gradient:hover{filter:brightness(1.12)}
 .cat-btn{border-radius:999px!important;transition:all .2s ease} .cat-btn.active{box-shadow:0 8px 18px -8px rgba(112,68,33,.8)}
-.grid>div:hover{transform:translateY(-3px);box-shadow:0 18px 38px -16px rgba(63,39,26,.4)}
-.grid img{transition:transform .5s ease}.grid>div:hover img{transform:scale(1.06)}
 @keyframes dkIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
-.grid>div{animation:dkIn .45s ease both}
 ::-webkit-scrollbar{height:6px;width:6px}::-webkit-scrollbar-thumb{background:#c8a24a;border-radius:9px}
 #kavod-footer{margin:28px auto 90px;max-width:760px;text-align:center;padding:14px 16px;border-radius:18px;background:linear-gradient(135deg,#2b2018,#14100e);color:#f3e7d3;font-size:12px;border:1px solid rgba(200,162,74,.45)}
 #kavod-footer a{color:#e8c76a;font-weight:800;text-decoration:none}
@@ -3726,7 +3724,7 @@ function drawHintHtml() {
   return `👥 ስንት ሰው ናችሁ? <button onclick="setPeople(-1)" class="w-7 h-7 rounded-full bg-emerald-50 border border-emerald-200 font-black">−</button> <b>${splitCount}</b> <button onclick="setPeople(1)" class="w-7 h-7 rounded-full bg-emerald-50 border border-emerald-200 font-black">+</button> • ` + (ok ? `🎟️ ለዕጣ ብቁ ናችሁ (${ch} ዕድል) — ስልክ ያስገቡ!` : `ዕጣ ለመግባት 2+ ሰው እና ከ1000 ብር በላይ ትዕዛዝ ያስፈልጋል (አሁን ${tot} ETB)`);
 }
 function setPeople(d) { splitCount = Math.max(1, Math.min(20, splitCount + d)); refreshDrawHint(); try { renderCartModal(); } catch (e) {} }
-function refreshDrawHint() { const el = document.getElementById('draw-hint'); if (el) { el.innerHTML = drawHintHtml(); if (currentLang === 'en') applyLangTexts(); } }
+function refreshDrawHint() { const el = document.getElementById('draw-hint'); if (el) { setHtml(el, drawHintHtml()); if (currentLang === 'en') applyLangTexts(); } }
 (function () { const c = document.getElementById('cust-points'); if (c && !document.getElementById('draw-hint')) c.insertAdjacentHTML('beforebegin', '<div id="draw-hint" class="mt-2 text-[11px] font-bold text-emerald-900"></div>'); refreshDrawHint(); setInterval(refreshDrawHint, 1500); })();
 </script>
 <script>
@@ -3741,7 +3739,7 @@ function renderPhoneInputs() {
 }
 const _setPeople = setPeople; setPeople = function (d) { _setPeople(d); renderPhoneInputs(); };
 (function () { const h = document.getElementById('draw-hint'); if (h && !document.getElementById('phones-extra')) h.insertAdjacentHTML('beforebegin', '<div id="phones-extra" class="mt-2 space-y-1.5"></div>'); renderPhoneInputs();
-  setInterval(() => { const el = document.getElementById('cust-phone'); if (el && normPhone(el.value) && db && !isAnyStaff() && document.visibilityState === 'visible') lookupMyPoints(); }, 10000); })();
+  setInterval(() => { const el = document.getElementById('cust-phone'); if (el && normPhone(el.value) && db && !isAnyStaff() && !window._revealing && document.visibilityState === 'visible') lookupMyPoints(); }, 10000); })();
 </script>
 <style>
 /* ===== Darik modern UI v2 ===== */
@@ -3754,7 +3752,7 @@ header h1{font-family:'Noto Serif Ethiopic','Plus Jakarta Sans',serif;letter-spa
 .dk-search{position:sticky;top:78px;z-index:20;display:flex;align-items:center;gap:10px;background:rgba(255,255,255,.88);backdrop-filter:blur(10px);border:1px solid rgba(200,162,74,.4);border-radius:999px;padding:9px 16px;margin-bottom:12px;box-shadow:0 10px 26px -16px rgba(63,39,26,.5)}
 .dk-search input{flex:1;background:transparent;border:0;outline:0;font-size:14px;font-weight:600;color:#3f271a;min-width:0}
 .dk-card{border-radius:26px;box-shadow:0 14px 34px -20px rgba(63,39,26,.55);transition:transform .3s cubic-bezier(.2,.8,.2,1),box-shadow .3s}
-.dk-card:hover{transform:translateY(-5px);box-shadow:0 26px 50px -22px rgba(63,39,26,.6)}
+@media (hover:hover){.dk-card:hover{transform:translateY(-3px);box-shadow:0 22px 44px -22px rgba(63,39,26,.55)}}
 .dk-card .relative.h-40{height:11.5rem}
 .dk-card .relative.h-40::after{content:"";position:absolute;inset:auto 0 0 0;height:60%;background:linear-gradient(to top,rgba(20,14,10,.72),transparent);pointer-events:none}
 .dk-card .relative.h-40>span,.dk-card .relative.h-40>img+span{z-index:2}
@@ -3830,7 +3828,8 @@ function renderFin() {
   const M = { cash: 0, cbe: 0, telebirr: 0, other: 0, unknown: 0 }, E = {}; let tot = 0;
   os.forEach(o => { const t = Number(o.total) || 0; tot += t; if (o.payments) PAYM.forEach(([k]) => M[k] += Number(o.payments[k]) || 0); else M.unknown += t; const n = o.paidBy || '—'; E[n] = E[n] || { c: 0, t: 0 }; E[n].c++; E[n].t += t; });
   const ex = Object.entries(f.expenses || {}), exT = ex.reduce((a, [, e]) => a + (Number(e.amt) || 0), 0), vat = tot * 15 / 115, open = Number(f.open) || 0, expCash = open + M.cash - exT, cl = f.close;
-  el.innerHTML = `<div class="flex items-center justify-between flex-wrap gap-2 mb-3"><h3 class="text-base font-extrabold text-emerald-950">📊 የዕለት ፋይናንስ — ${d}</h3><button onclick="finCsv()" class="text-xs font-bold bg-emerald-50 border border-emerald-200 px-3 py-1.5 rounded-lg">⬇️ CSV</button></div>
+  const _ae = document.activeElement; if (_ae && el.contains(_ae) && _ae.matches('input')) return;
+  const _h = `<div class="flex items-center justify-between flex-wrap gap-2 mb-3"><h3 class="text-base font-extrabold text-emerald-950">📊 የዕለት ፋይናንስ — ${d}</h3><button onclick="finCsv()" class="text-xs font-bold bg-emerald-50 border border-emerald-200 px-3 py-1.5 rounded-lg">⬇️ CSV</button></div>
   <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center">${[['ጠቅላላ ሽያጭ', money(tot)], ['ትዕዛዞች', os.length], ['አማካይ', os.length ? money(tot / os.length) : 0], ['ተ.እ.ታ (15% ያካተተ)', money(vat)]].map(([a, b]) => `<div class="bg-emerald-50 rounded-xl p-2.5"><p class="text-[10px] text-emerald-700 font-bold">${a}</p><p class="text-lg font-black text-emerald-950">${b}</p></div>`).join('')}</div>
   <p class="text-xs font-extrabold text-emerald-900 mt-3 mb-1">በክፍያ ዓይነት</p><div class="flex flex-wrap gap-1.5 text-xs font-bold">${PAYM.map(([k, l]) => `<span class="bg-amber-50 border border-amber-300 rounded-lg px-2.5 py-1">${l} ${money(M[k])}</span>`).join('')}${M.unknown ? `<span class="bg-gray-100 border rounded-lg px-2.5 py-1">ያልተመዘገበ ${money(M.unknown)}</span>` : ''}</div>
   <p class="text-xs font-extrabold text-emerald-900 mt-3 mb-1">በሰራተኛ</p><div class="text-xs space-y-0.5">${Object.entries(E).map(([n, v]) => `<p>👤 ${esc(n)} — ${v.c} ትዕዛዝ • ${money(v.t)} ETB</p>`).join('') || '<p class="text-gray-500">ገና የለም</p>'}</div>
@@ -3840,6 +3839,7 @@ function renderFin() {
   <p>መጀመሪያ የነበረ ካሽ: <input id="fin-open" type="number" value="${open || ''}" onchange="finSet('open',Number(this.value)||0)" class="w-24 border rounded px-1.5 py-1" ${cl ? 'disabled' : ''}> ብር</p>
   <p>መኖር ያለበት ካሽ: <b>${money(expCash)}</b> (መጀመሪያ + ካሽ ሽያጭ − ወጪ)</p>
   ${cl ? `<p class="font-extrabold text-emerald-800">✅ ቀኑ ተዘግቷል — የተቆጠረ ${money(cl.counted)} • ልዩነት ${money(cl.variance)} ETB (${esc(cl.by)})</p>` : `<p>የተቆጠረ ካሽ: <input id="fin-counted" type="number" class="w-24 border rounded px-1.5 py-1"> ብር <button onclick="finClose(${Math.round(expCash)})" class="ml-1 bg-emerald-700 text-white font-extrabold px-3 py-1 rounded-lg">ቀን ዝጋ</button></p>`}</div>`;
+  setHtml(el, _h);
 }
 function finSet(k, v) { requireEmployee(() => db.ref('finance/' + dayKey() + '/' + k).set(v)); }
 function finAddExpense() { const dsc = document.getElementById('ex-desc').value.trim(), amt = Number(document.getElementById('ex-amt').value); if (!dsc || !(amt > 0)) return showToast('⚠️ ወጪውን እና ብሩን ይሙሉ'); requireEmployee(() => { db.ref('finance/' + dayKey() + '/expenses').push({ ts: Date.now(), desc: dsc, amt, by: curEmp.name }); audit('expense', dsc + ' ' + amt); }); }
@@ -3905,7 +3905,7 @@ function readyList() { const r = []; sharedState.orders.forEach(o => { if (o.sta
 function renderWaiterReady() { const r = readyList(), el = document.getElementById('w-ready'); if (!el) return; el.innerHTML = r.length ? r.map(({ o, i }) => `<div class="flex items-center justify-between gap-2 bg-emerald-50 border border-emerald-200 rounded-lg px-2.5 py-1.5"><span><b>${o.table === 'Takeaway' ? '🛍️' : '🪑 #' + esc(o.table)}</b> ${i.qty}× ${esc(i.am)} ${i.readyTs ? '<span class="text-gray-500">(' + Math.floor((Date.now() - i.readyTs) / 60000) + ' ደ.)</span>' : ''}</span><button onclick="wServe('${o.id}','${i.uid}')" class="bg-emerald-700 text-white font-extrabold px-2.5 py-1 rounded-lg">ደርሷል</button></div>`).join('') : '<p class="text-gray-500">ለማድረስ የሚጠብቅ የለም</p>'; }
 function wServe(oid, uid) { const o = sharedState.orders.find(x => x.id === oid), it = o && o.items.find(i => i.uid === uid); if (it) { it.served = true; it.servedTs = Date.now(); saveSharedState(); renderWaiterReady(); } }
 function beep() { try { const c = new (window.AudioContext || window.webkitAudioContext)(), o = c.createOscillator(), g = c.createGain(); o.connect(g); g.connect(c.destination); o.frequency.value = 880; g.gain.value = .15; o.start(); setTimeout(() => { o.stop(); c.close(); }, 350); } catch (e) {} }
-const _ra2 = renderAllViews; renderAllViews = function () { _ra2(); if (currentTab === 'waiter') renderWaiter(); };
+const _ra2 = renderAllViews; renderAllViews = function () { _ra2(); if (currentTab === 'waiter' && !(document.activeElement && document.activeElement.matches('#view-waiter input'))) renderWaiter(); };
 setInterval(() => {
   if (!sharedState || !sharedState.orders) return; const r = readyList(), ids = new Set(r.map(x => x.i.uid)), b = document.getElementById('badge-waiter');
   if (b) { b.textContent = r.length; b.classList.toggle('hidden', !r.length); }
@@ -3933,25 +3933,27 @@ function renderLive() {
   const st = { food: [0, 0], drink: [0, 0] }; os.forEach(o => o.items.forEach(i => { if (i.readyTs) { const t0 = itemTs(i, o); if (dayKey(i.readyTs) === dayKey() && t0) { st[i.cat][0] += (i.readyTs - t0) / 60000; st[i.cat][1]++; } } }));
   const avg = c => st[c][1] ? Math.round(st[c][0] / st[c][1]) + ' ደ.' : '—'; const L = Object.values(loyaltyCache || {}), today = L.filter(v => v.lastOrderTs && dayKey(v.lastOrderTs) === dayKey()).length, top = [...L].sort((a, b) => (b.spent || 0) - (a.spent || 0)).slice(0, 5);
   const act = [...new Set(Object.values(shiftsToday).filter(x => !x.out).map(x => x.name))];
-  el.innerHTML = `<div class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2">${kpi('ዛሬ ሽያጭ', money(sales))}${kpi('ክፍት ጠረጴዛ', open.filter(o => Number(o.table)).length)}${kpi('ኪችን ይጠብቃል', pk)}${kpi('ባሬስታ ይጠብቃል', pb)}${kpi('ዘግይተዋል', late.length, late.length)}${kpi('ለማድረስ ዝግጁ', readyList().length)}${kpi('ዝቅተኛ ክምችት', lowStock().length, lowStock().length)}</div>
+  const _h = `<div class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2">${kpi('ዛሬ ሽያጭ', money(sales))}${kpi('ክፍት ጠረጴዛ', open.filter(o => Number(o.table)).length)}${kpi('ኪችን ይጠብቃል', pk)}${kpi('ባሬስታ ይጠብቃል', pb)}${kpi('ዘግይተዋል', late.length, late.length)}${kpi('ለማድረስ ዝግጁ', readyList().length)}${kpi('ዝቅተኛ ክምችት', lowStock().length, lowStock().length)}</div>
   ${card('🪑 ጠረጴዛዎች (በቀጥታ)', `<div class="grid grid-cols-5 sm:grid-cols-10 gap-1.5">${tiles}</div>`)}
   ${late.length ? card('⏰ የዘገዩ ትዕዛዞች', late.map(l => `<p class="text-xs text-red-700 font-bold">${l.st === 'kitchen' ? '🍳' : '🍹'} ${l.o.table === 'Takeaway' ? 'Takeaway' : 'ጠረጴዛ #' + esc(l.o.table)} — ${l.age} ደቂቃ</p>`).join('')) : ''}
   <div class="grid lg:grid-cols-2 gap-4">${card('👥 ሰራተኞች ዛሬ', `<p class="text-[11px] text-emerald-700 mb-1">በስራ ላይ: ${act.map(esc).join('፣ ') || '—'}</p><div class="text-xs space-y-1">${Object.entries(emp).map(([n, e]) => `<p>👤 <b>${esc(n)}</b> — ${e.sent} ትዕዛዝ ላከ • ${e.cnt} ዘጋ (${money(e.sales)} ETB) • ⏱ ${e.hrs.toFixed(1)} ሰዓት</p>`).join('') || '<p class="text-gray-500">ገና የለም</p>'}</div><p class="text-[11px] mt-2 text-emerald-700">አማካይ የዝግጅት ጊዜ: 🍳 ${avg('food')} • 🍹 ${avg('drink')}</p>`)}
   ${card('🧑‍🤝‍🧑 ደንበኞች', `<p class="text-xs">ዛሬ የመጡ (ስልክ ያስገቡ): <b>${today}</b> • ጠቅላላ የተመዘገቡ: <b>${L.length}</b> • የጠፉ: <b>${lapsedList().length}</b></p><div class="text-xs mt-1 space-y-0.5">${top.map(v => `<p>⭐ ${esc(v.phone)} — ${money(v.spent || 0)} ETB • ${v.visits || 0} ጉብኝት</p>`).join('')}</div>`)}</div>
   ${card('🧾 የቅርብ ጊዜ እንቅስቃሴ (ምዝግብ)', `<div class="text-[11px] space-y-0.5 max-h-56 overflow-y-auto">${Object.values(auditLog).sort((a, b) => b.ts - a.ts).map(a => `<p><span class="text-gray-500">${new Date(a.ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span> 👤 ${esc(a.emp)} — <b>${esc(a.action)}</b> ${esc(a.detail)}</p>`).join('') || '<p class="text-gray-500">ገና የለም</p>'}</div>`)}`;
+  setHtml(el, _h);
 }
 /* inventory */
 function renderStock() {
   const el = document.getElementById('stock-body'); if (!el) return; const ent = Object.entries(invItems), low = lowStock(), val = ent.reduce((a, [, v]) => a + (Number(v.qty) || 0) * (Number(v.cost) || 0), 0);
   const sel = document.getElementById('rc-item') ? document.getElementById('rc-item').value : (MENU_ITEMS[0] || {}).id;
-  el.innerHTML = `<div class="grid grid-cols-3 gap-2">${kpi('ዕቃዎች', ent.length)}${kpi('ዝቅተኛ', low.length, low.length)}${kpi('የክምችት ዋጋ', money(val) + ' ETB')}</div>
+  const _h = `<div class="grid grid-cols-3 gap-2">${kpi('ዕቃዎች', ent.length)}${kpi('ዝቅተኛ', low.length, low.length)}${kpi('የክምችት ዋጋ', money(val) + ' ETB')}</div>
   ${card('📦 የክምችት ዕቃዎች', `<div class="space-y-1.5">${ent.map(([id, v]) => { const lo = (Number(v.qty) || 0) <= (Number(v.min) || 0); return `<div class="flex items-center justify-between gap-2 border ${lo ? 'border-red-400 bg-red-50' : 'border-emerald-100'} rounded-lg px-3 py-1.5 text-xs"><span><b>${esc(v.name)}</b> — ${Number(v.qty || 0).toFixed(1)} ${esc(v.unit)} <span class="text-gray-500">(ዝቅተኛ ${v.min || 0} • ${v.cost || 0} ብር/${esc(v.unit)})</span>${lo ? ' <b class="text-red-600">⚠️ አልቋል</b>' : ''}</span><span class="flex gap-1"><button onclick="invAdj('${id}',1)" class="bg-emerald-700 text-white px-2 py-1 rounded font-bold">+ ግዢ</button><button onclick="invAdj('${id}',-1)" class="bg-amber-100 border border-amber-300 px-2 py-1 rounded font-bold">− ማስተካከያ</button><button onclick="invDel('${id}')" class="text-red-600 px-1">🗑</button></span></div>`; }).join('') || '<p class="text-xs text-gray-500">ገና ዕቃ አልተጨመረም — ከታች ይጨምሩ</p>'}</div>
   <div class="flex flex-wrap gap-1.5 mt-3"><input id="iv-name" placeholder="ስም (ቡና፣ ወተት…)" class="flex-1 min-w-[8rem] border border-emerald-200 rounded-lg px-2 py-1.5 text-xs"><input id="iv-unit" placeholder="መለኪያ (kg, L, pcs)" class="w-28 border border-emerald-200 rounded-lg px-2 py-1.5 text-xs"><input id="iv-qty" type="number" placeholder="መጠን" class="w-20 border border-emerald-200 rounded-lg px-2 py-1.5 text-xs"><input id="iv-min" type="number" placeholder="ዝቅተኛ" class="w-20 border border-emerald-200 rounded-lg px-2 py-1.5 text-xs"><input id="iv-cost" type="number" placeholder="ዋጋ/መለኪያ" class="w-24 border border-emerald-200 rounded-lg px-2 py-1.5 text-xs"><button onclick="invAdd()" class="brand-gradient text-white text-xs font-extrabold px-3 rounded-lg">+ ጨምር</button></div>`)}
-  ${card('🧪 የአዘገጃጀት መጠን (ለአንድ ሽያጭ) — ክፍያ ሲዘጋ ከክምችት በራስ-ሰር ይቀንሳል', `<select id="rc-item" onchange="renderStock()" class="w-full border border-emerald-200 rounded-lg px-2 py-1.5 text-xs font-bold mb-2">${MENU_ITEMS.map(m => `<option value="${m.id}" ${m.id === sel ? 'selected' : ''}>${esc(m.am)} (${esc(m.en)})</option>`).join('')}</select>
+  ${card('🧪 የአዘገጃጀት መጠን (ለአንድ ሽያጭ) — ክፍያ ሲዘጋ ከክምችት በራስ-ሰር ይቀንሳል', `<select id="rc-item" onchange="window._forceStock=true;renderStock()" class="w-full border border-emerald-200 rounded-lg px-2 py-1.5 text-xs font-bold mb-2">${MENU_ITEMS.map(m => `<option value="${m.id}" ${m.id === sel ? 'selected' : ''}>${esc(m.am)} (${esc(m.en)})</option>`).join('')}</select>
   <div class="grid sm:grid-cols-2 gap-1.5">${ent.map(([id, v]) => `<label class="text-[11px] font-bold text-emerald-900 flex items-center gap-2"><span class="w-32 truncate">${esc(v.name)} (${esc(v.unit)})</span><input data-ing="${id}" type="number" step="any" value="${((invRecipes[sel] || {})[id]) || ''}" class="w-24 border border-emerald-200 rounded px-1.5 py-1"></label>`).join('') || '<p class="text-xs text-gray-500">መጀመሪያ የክምችት ዕቃ ይጨምሩ</p>'}</div>
   ${(() => { const r = invRecipes[sel] || {}, m = MENU_ITEMS.find(x => x.id === sel), c = Object.entries(r).reduce((a, [k, q]) => a + q * ((invItems[k] || {}).cost || 0), 0); return Object.keys(r).length && m ? `<p class="text-[11px] mt-2 text-emerald-800 font-bold">ወጪ ግምት: ${c.toFixed(1)} ETB • ዋጋ ${m.price} • ትርፍ ≈ ${(m.price - c).toFixed(1)} ETB</p>` : ''; })()}
   <button onclick="invSaveRecipe()" class="mt-2 brand-gradient text-white text-xs font-extrabold px-4 py-2 rounded-lg">💾 አዘገጃጀት አስቀምጥ</button>`)}
   ${card('🕘 የቅርብ ጊዜ የክምችት እንቅስቃሴ', `<div class="text-[11px] space-y-0.5 max-h-48 overflow-y-auto">${Object.values(invLog).sort((a, b) => b.ts - a.ts).map(l => `<p><span class="text-gray-500">${new Date(l.ts).toLocaleString([], { hour: '2-digit', minute: '2-digit', day: '2-digit', month: 'short' })}</span> ${esc((invItems[l.ing] || {}).name || l.ing)} <b class="${l.delta < 0 ? 'text-red-600' : 'text-emerald-700'}">${l.delta > 0 ? '+' : ''}${Number(l.delta).toFixed(1)}</b> — ${esc(l.reason)} (${esc(l.by)})</p>`).join('') || '<p class="text-gray-500">ገና የለም</p>'}</div>`)}`;
+  { const ae = document.activeElement; if (window._forceStock || !(ae && el.contains(ae) && ae.matches('input,select'))) setHtml(el, _h); window._forceStock = false; }
   const b = document.getElementById('badge-stock'); if (b) { b.textContent = low.length; b.classList.toggle('hidden', !low.length); }
 }
 function invAdd() { const n = document.getElementById('iv-name').value.trim(), u = document.getElementById('iv-unit').value.trim(); if (!n || !u) return showToast('⚠️ ስም እና መለኪያ ያስገቡ'); requireEmployee(() => { db.ref('inventory/items').push({ name: n, unit: u, qty: Number(document.getElementById('iv-qty').value) || 0, min: Number(document.getElementById('iv-min').value) || 0, cost: Number(document.getElementById('iv-cost').value) || 0 }); audit('stock_add', n); }); }
@@ -3973,5 +3975,12 @@ setInterval(() => {
 }, 3000);
 setInterval(() => { if (currentTab === 'live') renderLive(); }, 5000);
 </script>
+<style>
+/* staff pages: calm UI, no motion (only the new-order pulse stays) */
+body:not([data-role="customer"]) *:not(.pulse-alert){animation:none!important;transition:none!important}
+body:not([data-role="customer"]) .dk-card:hover{transform:none!important}
+</style>
+<script>document.body.dataset.role = new URLSearchParams(location.search).get('role') || 'staff';
+function setHtml(el, html) { if (el && el._h !== html) { el._h = html; el.innerHTML = html; } }</script>
 </body>
 </html>
