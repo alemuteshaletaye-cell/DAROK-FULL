@@ -4185,5 +4185,17 @@ const _ra4 = renderAllViews; renderAllViews = function () { _ra4(); renderHome()
 renderHome();
 </script>
 <style>.dk-hero-in{animation:dkIn .6s ease both}.dk-tile{transition:background .15s,transform .15s}</style>
+<script>
+/* fix: the real "የሰው ብዛት" control is changeSplitCount (top bar); sync phone inputs + draw hint with it */
+function drawHintHtml() {
+  const tot = Object.keys(cart).reduce((a, id) => { const m = MENU_ITEMS.find(x => x.id === id); return a + (m ? (Number(m.price) || 0) * cart[id] : 0); }, 0), n = splitCount;
+  const ok = n >= LOYALTY.GROUP_MIN && tot > LOYALTY.DRAW_MIN_TOTAL, ch = tot >= LOYALTY.DOUBLE_CHANCE_TOTAL ? 2 : 1;
+  return `👥 <b>${n} ሰው</b> <span class="font-normal text-emerald-700">(ብዛቱን ከላይ "የሰው ብዛት" ላይ ይቀይሩ)</span> • ` + (ok ? `<span class="text-emerald-700">🎟️ ለዕጣ ብቁ ናችሁ (${ch} ዕድል) — ሁሉም ሰው ስልኩን ያስገባ!</span>` : n < LOYALTY.GROUP_MIN ? 'ለዕጣ ለመግባት "የሰው ብዛት" 2 ወይም ከዚያ በላይ ያድርጉ' : `ዕጣ ለመግባት ከ${LOYALTY.DRAW_MIN_TOTAL} ብር በላይ ማዘዝ ያስፈልጋል (አሁን ${tot} ETB)`);
+}
+const _csc = changeSplitCount;
+changeSplitCount = function (d) { const before = splitCount; _csc(d); renderPhoneInputs(); refreshDrawHint(); if (before < LOYALTY.GROUP_MIN && splitCount >= LOYALTY.GROUP_MIN) showToast('📱 ሁሉም ሰው ስልኩን ያስገባ — ለዕጣ ጨዋታ ይገባል!'); };
+setInterval(() => { if (document.getElementById('phones-extra') && extraPhones.length !== Math.max(0, splitCount - 1)) renderPhoneInputs(); }, 1000);
+refreshDrawHint(); renderPhoneInputs();
+</script>
 </body>
 </html>
