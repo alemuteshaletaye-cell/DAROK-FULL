@@ -3900,13 +3900,15 @@ function wNote(id, v) { if (wCart[id]) wCart[id].note = v.trim(); renderWaiterCa
 function renderWaiterCart() { const m = getEffectiveMenuItems(true), e = Object.entries(wCart); let t = 0; document.getElementById('w-cart').innerHTML = e.length ? e.map(([id, c]) => { const it = m.find(x => x.id === id); t += it.price * c.qty; return `<p>${c.qty}× <b>${esc(it.am)}</b> — ${it.price * c.qty}${c.note ? `<br><span class="text-amber-700">📝 ${esc(c.note)}</span>` : ''}</p>`; }).join('') + `<p class="font-extrabold border-t pt-1 mt-1">ጠቅላላ: ${t} ETB</p>` : '<p class="text-gray-500">ዕቃ ይምረጡ</p>'; }
 function wSend() {
   const e = Object.entries(wCart); if (!e.length) return showToast('እባክዎ መጀመሪያ ዕቃ ይምረጡ!');
+  if (!Object.keys(staffCache).length) showToast('⚠️ ሰራተኞች አልተመዘገቡም — ባለቤቱ PIN ያስመዝግብ፣ አለዚያ ትዕዛዙ በማን እንደተላከ አይታወቅም');
+  curEmp = null; lastAct = 0;
   requireEmployee(() => {
     const raw = document.getElementById('w-table').value.trim(), tbl = raw ? parseInt(raw, 10) : 'Takeaway', m = getEffectiveMenuItems(true), by = curEmp ? curEmp.name : '—';
     const items = e.map(([id, c]) => { const x = m.find(y => y.id === id); return { uid: `${id}_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`, id: x.id, am: x.am, en: x.en, cat: x.cat, price: x.price, qty: c.qty, ready: false, stage: 'new', note: c.note || '', by }; });
     const ex = typeof tbl === 'number' ? getActiveTableOrder(tbl) : null; let ord;
     if (ex) { ex.items.push(...items); ex.total = calculateOrderTotals(ex).confirmedTotal; if (items.some(i => i.cat === 'food')) ex.seenKitchen = false; if (items.some(i => i.cat === 'drink')) ex.seenBarista = false; ord = ex; }
     else { ord = { id: `POS-${Math.floor(1000 + Math.random() * 9000)}`, table: tbl, source: 'Waiter POS', status: 'active', items, pendingItems: [], tip: 0, pendingTip: 0, total: items.reduce((a, i) => a + i.price * i.qty, 0), note: '', seenKitchen: false, seenBarista: false, createdBy: by, createdAt: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }), createdTs: Date.now() }; sharedState.orders.unshift(ord); }
-    const doPrint = document.getElementById('w-print').checked; wCart = {}; document.getElementById('w-table').value = ''; saveSharedState(); audit('order_sent', `#${ord.table} ${items.length} ዕቃ`); showToast('🚀 ትዕዛዙ ወደ ኪችን እና ባሬስታ ተልኳል!'); renderWaiter();
+    const doPrint = document.getElementById('w-print').checked; wCart = {}; document.getElementById('w-table').value = ''; saveSharedState(); audit('order_sent', `#${ord.table} ${items.length} ዕቃ`); showToast('🚀 ትዕዛዙ ተልኳል — 👤 ' + by); renderWaiter(); curEmp = null; lastAct = 0; updEmpBar();
     if (doPrint) { if (items.some(i => i.cat === 'food')) printTicket(ord.id, 'kitchen'); if (items.some(i => i.cat === 'drink')) setTimeout(() => printTicket(ord.id, 'barista'), 600); }
   });
 }
@@ -4084,7 +4086,7 @@ function renderStock() {
   ${card('🧪 አዘገጃጀት — አንድ ሽያጭ ምን ያህል ይፈጃል', `<select id="rc-item" onchange="window._forceStock=true;renderStock()" class="w-full border border-emerald-200 rounded-lg px-2 py-2 text-xs font-bold mb-2">${MENU_ITEMS.map(m => `<option value="${m.id}" ${m.id === sel ? 'selected' : ''}>${esc(m.am)} (${esc(m.en)})</option>`).join('')}</select>
   <div class="grid sm:grid-cols-2 gap-1.5">${ent.map(([id, v]) => `<label class="text-[11px] font-bold text-emerald-900 flex items-center gap-2"><span class="w-32 truncate">${esc(v.name)} (${esc(v.unit)})</span><input data-ing="${id}" type="number" step="any" value="${((invRecipes[sel] || {})[id]) || ''}" class="w-24 border border-emerald-200 rounded px-1.5 py-1"></label>`).join('') || '<p class="text-xs text-gray-500">መጀመሪያ ዕቃ ይጨምሩ</p>'}</div>
   ${(() => { const r = invRecipes[sel] || {}, m = MENU_ITEMS.find(x => x.id === sel), c = Object.entries(r).reduce((a, [k, q]) => a + q * ((invItems[k] || {}).cost || 0), 0); return Object.keys(r).length && m ? `<p class="text-[11px] mt-2 text-emerald-800 font-bold">ወጪ ግምት: ${c.toFixed(1)} ETB • ዋጋ ${m.price} • ትርፍ ≈ ${(m.price - c).toFixed(1)} ETB</p>` : ''; })()}
-  <p class="text-[11px] text-gray-500 mt-1">ምግብ ሲሸጥ ከ🍳 ኪችን፣ መጠጥ ሲሸጥ ከ🍹 ባሬስታ ይቀነሳል።</p><button onclick="invSaveRecipe()" class="mt-2 brand-gradient text-white text-xs font-extrabold px-4 py-2 rounded-lg">💾 አስቀምጥ</button>`)}
+  ${invEst[sel] ? '<p class="text-[11px] font-extrabold text-amber-800 bg-amber-50 border border-amber-300 rounded-lg px-2 py-1 mb-1">⚠️ ይህ የተገመተ መጠን ነው — ከሼፍ ጋር አረጋግጠው አስተካክለው 💾 ያስቀምጡ</p>' : ''}<p class="text-[11px] text-gray-500 mt-1">ምግብ ሲሸጥ ከ🍳 ኪችን፣ መጠጥ ሲሸጥ ከ🍹 ባሬስታ ይቀነሳል።</p><button onclick="invSaveRecipe()" class="mt-2 brand-gradient text-white text-xs font-extrabold px-4 py-2 rounded-lg">💾 አስቀምጥ</button>`)}
   ${card('🕘 የቅርብ ጊዜ የክምችት እንቅስቃሴ', `<div class="text-[11px] space-y-0.5 max-h-48 overflow-y-auto">${Object.values(invLog).sort((a, b) => b.ts - a.ts).map(l => `<p><span class="text-gray-500">${new Date(l.ts).toLocaleString([], { hour: '2-digit', minute: '2-digit', day: '2-digit', month: 'short' })}</span> ${esc((invItems[l.ing] || {}).name || l.ing)} ${l.loc ? '(' + (LOC[l.loc] || l.loc) + ')' : ''} <b class="${l.delta < 0 ? 'text-red-600' : 'text-emerald-700'}">${l.delta > 0 ? '+' : ''}${Number(l.delta).toFixed(1)}</b> — ${esc(l.reason)} (${esc(l.by)})</p>`).join('') || '<p class="text-gray-500">ገና የለም</p>'}</div>`)}`;
   const ae = document.activeElement; if (window._forceStock || !(ae && el.contains(ae) && ae.matches('input,select'))) setHtml(el, _h); window._forceStock = false;
   const b = document.getElementById('badge-stock'); if (b) { b.textContent = low.length; b.classList.toggle('hidden', !low.length); }
@@ -4126,7 +4128,7 @@ let _prevSold = null, _prevLow = null, _availJson = '';
 setInterval(() => {
   if (!db || typeof isStaffUser !== 'function' || !isStaffUser(authUser) || !sharedState.orders) return; const a = computeAvail(), j = JSON.stringify({ s: a.sold, f: a.few });
   const low = new Set(lowStock().map(([id]) => id)), sold = new Set(Object.keys(a.sold));
-  if (_prevSold) { sold.forEach(id => { if (!_prevSold.has(id)) { const m = MENU_ITEMS.find(x => x.id === id) || {}; beep(); showToast(`🚫 ${m.am} አልቋል (${(a.left[id] || {}).why || ''})!`); audit('sold_out', m.am); } });
+  if (_prevSold) { const _nw = [...sold].filter(id => !_prevSold.has(id)); if (_nw.length > 3) { beep(); showToast('🚫 ' + _nw.length + ' ምርቶች አይገኙም'); } else _nw.forEach(id => { { const m = MENU_ITEMS.find(x => x.id === id) || {}; beep(); showToast(`🚫 ${m.am} አልቋል (${(a.left[id] || {}).why || ''})!`); audit('sold_out', m.am); } });
     low.forEach(id => { if (!_prevLow.has(id)) { beep(); showToast(`⚠️ ${(invItems[id] || {}).name} ከዝቅተኛው በታች ነው`); } }); }
   _prevSold = sold; _prevLow = low;
   if (j !== _availJson) { _availJson = j; window._avail = { sold: a.sold, few: a.few }; sharedState.avail = window._avail; try { delete pubCache.cfg; publishMirrors(); } catch (e) {} renderAllViews(); }
@@ -4196,6 +4198,72 @@ const _csc = changeSplitCount;
 changeSplitCount = function (d) { const before = splitCount; _csc(d); renderPhoneInputs(); refreshDrawHint(); if (before < LOYALTY.GROUP_MIN && splitCount >= LOYALTY.GROUP_MIN) showToast('📱 ሁሉም ሰው ስልኩን ያስገባ — ለዕጣ ጨዋታ ይገባል!'); };
 setInterval(() => { if (document.getElementById('phones-extra') && extraPhones.length !== Math.max(0, splitCount - 1)) renderPhoneInputs(); }, 1000);
 refreshDrawHint(); renderPhoneInputs();
+</script>
+<script>
+/* ===== Strict stock mode: only items with a recipe AND stock can be ordered ===== */
+let invSettings = {}, strictWatching = false;
+const _ca = computeAvail;
+computeAvail = function () {
+  const a = _ca(); if (!invSettings || !invSettings.strict) return a;
+  MENU_ITEMS.forEach(m => { const r = invRecipes[m.id]; if (!r || !Object.keys(r).length) { a.sold[m.id] = 1; a.left[m.id] = { n: 0, why: 'አዘገጃጀት አልገባም', loc: m.cat === 'drink' ? 'bar' : 'kitchen' }; delete a.few[m.id]; } });
+  return a;
+};
+function untrackedItems() { return MENU_ITEMS.filter(m => { const r = invRecipes[m.id]; return !r || !Object.keys(r).length; }); }
+function strictCard() {
+  const on = !!(invSettings && invSettings.strict), u = untrackedItems();
+  return card('🔒 ጥብቅ ሁነታ — ክምችት ሳይኖር ማዘዝ ይከለከል', `<p class="text-xs mb-2">አሁን: <b class="${on ? 'text-emerald-700' : 'text-red-600'}">${on ? '✅ በርቷል — አዘገጃጀት እና ክምችት ያላቸው ምርቶች ብቻ ይታዘዛሉ' : '⛔ ጠፍቷል — አዘገጃጀት ያልገባላቸው ምርቶች ያለ ክምችት ይታዘዛሉ'}</b></p>
+  <p class="text-[11px] text-gray-600 mb-2">አዘገጃጀት ያልገባላቸው ምርቶች: <b>${u.length}</b> ከ ${MENU_ITEMS.length}${u.length && u.length < 25 ? '<br>' + u.map(m => esc(m.am)).join('፣ ') : ''}</p>
+  <button onclick="invStrictToggle()" class="${on ? 'bg-white border border-emerald-300' : 'brand-gradient text-white'} text-xs font-extrabold px-4 py-2 rounded-lg">${on ? 'ጥብቅ ሁነታን አጥፋ' : '🔒 ጥብቅ ሁነታን አብራ'}</button>
+  <p class="text-[11px] text-amber-800 mt-2">⚠️ ከማብራትዎ በፊት ለሁሉም ምርት አዘገጃጀት እና ግዢ ያስገቡ፤ ያለዚያ ያልገቡት ምርቶች "ያለቀ" ይሆናሉ።</p>`);
+}
+const _ac = availCard; availCard = function () { return strictCard() + _ac(); };
+function invStrictToggle() {
+  const on = !!(invSettings && invSettings.strict), u = untrackedItems().length;
+  if (!on && u && !confirm(`አዘገጃጀት ያልገባላቸው ${u} ምርቶች ወዲያው "ያለቀ" ይሆናሉ። ይቀጥል?`)) return;
+  requireEmployee(() => { db.ref('inventory/settings/strict').set(!on); audit('strict_mode', !on ? 'on' : 'off'); showToast(!on ? '🔒 ጥብቅ ሁነታ በርቷል' : 'ጥብቅ ሁነታ ጠፍቷል'); });
+}
+const _sc = submitCustomerOrder;
+submitCustomerOrder = function () { const bad = Object.keys(cart).filter(id => cart[id] > 0 && isSoldOutId(id)); if (bad.length) { showToast('🚫 አልቀዋል: ' + bad.map(id => (MENU_ITEMS.find(m => m.id === id) || {}).am).join('፣ ') + ' — ከጋሪው ያስወግዱ'); return; } return _sc.apply(this, arguments); };
+setInterval(() => { if (!strictWatching && db && typeof isStaffUser === 'function' && isStaffUser(authUser)) { strictWatching = true; db.ref('inventory/settings').on('value', sn => { invSettings = sn.val() || {}; if (currentTab === 'stock') renderStock(); }, () => { strictWatching = false; }); } }, 3000);
+</script>
+<script>
+/* ===== Starter set: ingredients + ESTIMATED recipes (owner must verify) ===== */
+let invEst = {}, estWatching = false;
+const STARTER_ING = [['ዱቄት','kg',5],['ጤፍ','kg',5],['ቅቤ','kg',2],['በርበሬ','kg',1],['ዘይት','L',5],['እንቁላል','pcs',30],['ሽንኩርት','kg',5],['ቲማቲም','kg',5],['ባቄላ','kg',3],['ሽሮ','kg',3],['ዳቦ','pcs',20],['እንጀራ','pcs',30],['ቺዝ','kg',1],['ስጋ','kg',5],['ዶሮ','kg',5],['ሩዝ','kg',5],['ፓስታ','kg',3],['ቱና','pcs',10],['አጃ','kg',2],['ድንች','kg',5],['አትክልት','kg',3],['ቡና','kg',3],['ወተት','L',10],['ሻይ ቅጠል','kg',1],['ስኳር','kg',5],['ሎሚ','pcs',20],['ዝንጅብል','kg',1],['ቸኮሌት','kg',1],['ካራሜል','L',1],['ማዮኔዝ','kg',1],['ፍራፍሬ','kg',5],['ሙዝ','kg',3],['አምቦ ውሃ','pcs',24],['ውሃ 1L','pcs',24],['ውሃ 0.5L','pcs',24],['ለስላሳ መጠጥ','pcs',24],['ብስኩት','pcs',20]];
+const SR = {}; const sr = (ids, t) => ids.forEach(i => { SR[i] = t; });
+sr(Array.from({ length: 14 }, (_, i) => 't' + (i + 1)), 'ቡና:.012,ስኳር:.008');
+Object.assign(SR, { b1: 'ዱቄት:.12,ቅቤ:.03,በርበሬ:.01', b2: 'ዱቄት:.12,ቅቤ:.04,በርበሬ:.01,እንቁላል:1', b3: 'ጤፍ:.12,ቅቤ:.03,በርበሬ:.01', b4: 'ጤፍ:.12,ቅቤ:.04,በርበሬ:.01,እንቁላል:1', b5: 'ባቄላ:.2,ዘይት:.02,ሽንኩርት:.03,ቲማቲም:.05', b6: 'ባቄላ:.2,ዘይት:.02,ሽንኩርት:.03,ቲማቲም:.05,እንቁላል:1',
+  b7: 'እንቁላል:3,ዘይት:.02,ሽንኩርት:.04,ቲማቲም:.06', b8: 'እንቁላል:3,ዘይት:.02,ሽንኩርት:.04,ቲማቲም:.1', b9: 'እንቁላል:3,ስጋ:.08,ሽንኩርት:.04,ቲማቲም:.05,ዘይት:.02', b10: 'ዳቦ:1,እንቁላል:2,ዘይት:.01', b11: 'ዳቦ:1,እንቁላል:2,ዘይት:.01,ቺዝ:.03', b12: 'እንቁላል:3,ዘይት:.02,ሽንኩርት:.03,ቲማቲም:.03', b13: 'እንቁላል:3,ዘይት:.02,ሽንኩርት:.03,ቲማቲም:.03,ቺዝ:.04',
+  b14: 'ዳቦ:1,ቱና:.5,ማዮኔዝ:.02', b15: 'ድንች:.3,ዘይት:.08', b16: 'አጃ:.08', b17: 'አጃ:.08,ወተት:.2,ፍራፍሬ:.05', b18: 'ዱቄት:.1,እንቁላል:1,ወተት:.1,ስኳር:.02,ዘይት:.02',
+  g1: 'ዶሮ:.25,ሽንኩርት:.08,በርበሬ:.01,ዘይት:.04', g2: 'እንጀራ:1,ስጋ:.15,ሽንኩርት:.05,በርበሬ:.01,ዘይት:.03', g3: 'ስጋ:.2,ሽንኩርት:.05,በርበሬ:.015,ቅቤ:.03', g4: 'እንጀራ:1,ቱና:1,ሽንኩርት:.05,ቲማቲም:.05,ዘይት:.03', g5: 'እንጀራ:1,ሽንኩርት:.05,ቲማቲም:.08,በርበሬ:.01,ዘይት:.02', g6: 'እንጀራ:1,ሽሮ:.08,ቅቤ:.03,በርበሬ:.015',
+  g7: 'እንጀራ:1,ሽሮ:.08,ሽንኩርት:.05,ዘይት:.03', g8: 'እንጀራ:1,ሽሮ:.08,ሽንኩርት:.05,ዘይት:.03,ቱና:1', g9: 'እንጀራ:1,ሽሮ:.08,ሽንኩርት:.05,ዘይት:.03,አትክልት:.1', g10: 'እንጀራ:1,ሽሮ:.08,ሽንኩርት:.05,ዘይት:.03', g11: 'እንጀራ:1,ሽሮ:.08,ሽንኩርት:.05,ዘይት:.03,አትክልት:.1', g12: 'እንጀራ:1,ቲማቲም:.25,ሽንኩርት:.04,በርበሬ:.01', g13: 'ፓስታ:.12,ቲማቲም:.15,ዘይት:.03,ሽንኩርት:.03', g14: 'ፓስታ:.12,አትክልት:.12,ዘይት:.03', g15: 'ፓስታ:.12,ስጋ:.08,ቲማቲም:.1,ዘይት:.03',
+  r1: 'ሩዝ:.12,ዶሮ:.15,አትክልት:.08,ዘይት:.02', r2: 'ሩዝ:.12,አትክልት:.12,ዘይት:.02', s1: 'ስጋ:.15,ዳቦ:1,ቺዝ:.03,አትክልት:.06,ማዮኔዝ:.02', s2: 'ስጋ:.3,ዳቦ:1,ቺዝ:.04,አትክልት:.06,ማዮኔዝ:.02', s3: 'ስጋ:.13,ዳቦ:1,ቺዝ:.04,አትክልት:.05', s4: 'ስጋ:.13,ዳቦ:1,አትክልት:.05,ማዮኔዝ:.02', s5: 'ስጋ:.15,ዳቦ:1,ቺዝ:.03,አትክልት:.06,ማዮኔዝ:.02', s6: 'ዶሮ:.15,ዳቦ:1,አትክልት:.06,ማዮኔዝ:.02', s7: 'ስጋ:.15,ዳቦ:1,አትክልት:.06,ማዮኔዝ:.02', s8: 'ቱና:1,ዳቦ:1,አትክልት:.06,ማዮኔዝ:.02',
+  h1: 'ወተት:.25', h2: 'ቡና:.018,ወተት:.06,ስኳር:.008', h3: 'ቡና:.018,ስኳር:.008', h4: 'ቡና:.018,ወተት:.2,ስኳር:.008', h5: 'ቡና:.018,ወተት:.15,ስኳር:.008', h6: 'ቸኮሌት:.03,ወተት:.25', h7: 'ቡና:.018,ወተት:.08,ካራሜል:.02', h8: 'ቡና:.018,ወተት:.2,ካራሜል:.025', h9: 'ሻይ ቅጠል:.003,ስኳር:.01', h10: 'ሻይ ቅጠል:.003,ስኳር:.01,ዝንጅብል:.01', h11: 'ሻይ ቅጠል:.003,ስኳር:.01,ፍራፍሬ:.05', h12: 'ሻይ ቅጠል:.003,ስኳር:.01,ፍራፍሬ:.05', h13: 'ሻይ ቅጠል:.003,ስኳር:.01', h14: 'ሻይ ቅጠል:.003,ስኳር:.01', h15: 'ሻይ ቅጠል:.003,ስኳር:.01', h16: 'ሻይ ቅጠል:.003,ስኳር:.01,ሎሚ:.25', h17: 'ሻይ ቅጠል:.003,ቡና:.008,ስኳር:.01', h18: 'ሻይ ቅጠል:.003,ስኳር:.01', h19: 'ሻይ ቅጠል:.003,ስኳር:.01', h20: 'ሻይ ቅጠል:.004,ስኳር:.01,ወተት:.1',
+  c1: 'ፍራፍሬ:.25,ስኳር:.01', c2: 'ሙዝ:.15,ወተት:.2', c3: 'ፍራፍሬ:.2,ወተት:.15', c4: 'ቡና:.018,ወተት:.2,ስኳር:.008', c5: 'ቡና:.018,ወተት:.1,ስኳር:.008', c6: 'ሻይ ቅጠል:.004,ስኳር:.015,ሎሚ:.25', c7: 'ሎሚ:.5,ስኳር:.02,ፍራፍሬ:.05', c8: 'ሎሚ:.5,ስኳር:.02', c9: 'ሎሚ:.5,ስኳር:.02', c10: 'አምቦ ውሃ:1', c11: 'ለስላሳ መጠጥ:1', c12: 'ውሃ 1L:1', c13: 'ውሃ 0.5L:1', c14: 'ብስኩት:1',
+  x1: 'እንጀራ:1', x2: 'ዳቦ:1', x3: 'ማዮኔዝ:.03', x4: 'ማዮኔዝ:.03,በርበሬ:.005', x5: 'ቺዝ:.03', x6: 'ስጋ:.05', x7: 'እንቁላል:1', x8: 'ድንች:.15,ዘይት:.04' });
+function starterCard() {
+  const u = untrackedItems().length; if (!u) return '';
+  return card('📥 መነሻ ስብስብ (ግምታዊ)', `<p class="text-xs mb-2">ለ<b>${u}</b> ምርቶች አዘገጃጀት የለም። አንድ ቁልፍ፦ <b>${STARTER_ING.length} ጥሬ ዕቃዎችን</b> (ክምችታቸው 0) እና ለእነዚህ ምርቶች <b>የተገመተ አዘገጃጀት</b> ይጨምራል።</p>
+  <p class="text-[11px] text-amber-800 bg-amber-50 border border-amber-300 rounded-lg px-2 py-1.5 mb-2">⚠️ መጠኖቹ የእኔ ግምት ናቸው፣ ከካፌው ሼፍ ጋር ማረጋገጥ ያስፈልጋል። የገቡት ሁሉ "⚠️ ግምት" ተብለው ምልክት ይደረግባቸዋል፤ ሲያስተካክሉ እና ሲያስቀምጡ ምልክቱ ይጠፋል። አስቀድሞ ያስገቡትን ምንም አይነካም።</p>
+  <button onclick="invSeedStarter()" class="brand-gradient text-white text-xs font-extrabold px-4 py-2 rounded-lg">📥 መነሻ ስብስብ ጫን</button>`);
+}
+const _ac3 = availCard; availCard = function () { return starterCard() + _ac3(); };
+async function invSeedStarter() {
+  if (!confirm('መነሻ ስብስብ ይጫን? (ያሉ ዕቃዎች እና አዘገጃጀቶች አይነኩም)')) return;
+  requireEmployee(async () => {
+    try { const ids = {}; Object.entries(invItems).forEach(([id, v]) => { ids[String(v.name).trim()] = id; });
+      for (const [name, unit, min] of STARTER_ING) { if (!ids[name]) { const r = db.ref('inventory/items').push(); await r.set({ name, unit, store: 0, kitchen: 0, bar: 0, min, cost: 0 }); ids[name] = r.key; } }
+      const upd = {}; let n = 0;
+      Object.entries(SR).forEach(([mid, str]) => { if (!MENU_ITEMS.some(m => m.id === mid)) return; if (invRecipes[mid] && Object.keys(invRecipes[mid]).length) return; const o = {}; str.split(',').forEach(p => { const k = p.lastIndexOf(':'), nm = p.slice(0, k), q = Number(p.slice(k + 1)); if (ids[nm] && q > 0) o[ids[nm]] = q; }); if (Object.keys(o).length) { upd['recipes/' + mid] = o; upd['est/' + mid] = true; n++; } });
+      await db.ref('inventory').update(upd); audit('starter_set', n + ' recipes'); showToast(`📥 ${n} አዘገጃጀቶች ተጨመሩ (ግምት) — ያረጋግጡ`);
+    } catch (e) { console.warn(e); showToast('⚠️ መጫን አልተሳካም'); }
+  });
+}
+function invSaveRecipe() {
+  const id = document.getElementById('rc-item').value, r = {}; document.querySelectorAll('#stock-body input[data-ing]').forEach(i => { const q = Number(i.value); if (q > 0) r[i.dataset.ing] = q; });
+  requireEmployee(() => { db.ref('inventory/recipes/' + id).set(Object.keys(r).length ? r : null); db.ref('inventory/est/' + id).remove(); audit('recipe_save', id); showToast('💾 ተቀምጧል'); });
+}
+setInterval(() => { if (!estWatching && db && typeof isStaffUser === 'function' && isStaffUser(authUser)) { estWatching = true; db.ref('inventory/est').on('value', sn => { invEst = sn.val() || {}; }, () => { estWatching = false; }); } }, 3000);
 </script>
 </body>
 </html>
